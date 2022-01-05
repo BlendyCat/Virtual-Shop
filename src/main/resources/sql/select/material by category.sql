@@ -1,0 +1,1 @@
+SELECT `material` FROM `material_index` WHERE `category` = ?;

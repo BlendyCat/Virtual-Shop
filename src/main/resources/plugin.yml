@@ -1,0 +1,14 @@
+name: VirtualShop
+main: com.blendycat.virtualshop.Main
+version: 0.0.1
+api-version: 1.18
+
+commands:
+  shop:
+    usage: /<command>
+    description: This opens the shop
+    permission: shops.command.shop
+  updatecategories:
+    usage: /<command>
+    description: updates the categories from the config into the database
+    permission: shops.command.updatecategories
