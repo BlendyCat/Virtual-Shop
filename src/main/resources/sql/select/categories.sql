@@ -1,0 +1,1 @@
+SELECT `name`, `display` from `categories`;

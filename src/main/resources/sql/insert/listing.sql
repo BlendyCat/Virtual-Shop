@@ -1,0 +1,1 @@
+INSERT INTO `listings`(`seller`, `material`, `price`, `quantity`) VALUES(?,?,?,?);

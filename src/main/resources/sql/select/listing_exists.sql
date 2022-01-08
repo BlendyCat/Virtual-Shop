@@ -1,0 +1,1 @@
+SELECT `id`, `quantity`, `price` FROM `listings` WHERE `seller` = ? AND `material` = ?;
