@@ -1,0 +1,1 @@
+UPDATE `listings` SET `quantity` = ?, `price` = ? WHERE `id` = ?;

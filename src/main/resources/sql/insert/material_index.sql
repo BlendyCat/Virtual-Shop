@@ -1,0 +1,1 @@
+INSERT INTO `material_index`(`material`, `category`) VALUES (?, ?);
