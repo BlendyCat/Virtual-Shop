@@ -55,12 +55,11 @@ public class UpdateCategoriesCommand implements CommandExecutor {
                             materialStmt.setString(2, category);
                             materialStmt.addBatch();
                             materialBatchSize++;
-                            // way to break up into smaller batches however seems to be insignificant and even slow it down slightly
-                            /*if(materialBatchSize >= 80) {
+                            if(materialBatchSize >= 80) {
                                 materialStmt.executeBatch();
                                 materialStmt.clearBatch();
                                 materialBatchSize = 0;
-                            }*/
+                            }
                         }
                     }
                     categoryStmt.executeBatch();
