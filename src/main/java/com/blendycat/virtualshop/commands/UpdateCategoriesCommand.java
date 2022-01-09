@@ -23,18 +23,16 @@ public class UpdateCategoriesCommand implements CommandExecutor {
                 long before = System.currentTimeMillis();
                 // Drop and create new tables
                 Statement stmt = conn.createStatement();
-                stmt.addBatch("DROP TABLE `categories`;");
-                stmt.addBatch("DROP TABLE `material_index`;");
-                stmt.addBatch(Main.loadSQL("sql/tables/categories.sql"));
-                stmt.addBatch(Main.loadSQL("sql/tables/material_index.sql"));
-                stmt.executeBatch();
+                stmt.execute("DROP TABLE `categories`;");
+                stmt.execute("DROP TABLE `material_index`;");
+                stmt.execute(Main.loadSQL("sql/tables/categories.sql"));
+                stmt.execute(Main.loadSQL("sql/tables/material_index.sql"));
 
                 FileConfiguration config = Main.instance.getConfig();
                 ConfigurationSection categories = config.getConfigurationSection("categories");
                 if(categories != null) {
                     PreparedStatement materialStmt = conn.prepareStatement(Main.loadSQL("sql/insert/material_index.sql"));
                     PreparedStatement categoryStmt = conn.prepareStatement(Main.loadSQL("sql/insert/categories.sql"));
-                    int materialBatchSize = 0;
                     for (String category : categories.getKeys(false)) {
                         String icon = categories.getString(category + ".icon");
                         if(icon == null) {
@@ -44,7 +42,7 @@ public class UpdateCategoriesCommand implements CommandExecutor {
                         }
                         categoryStmt.setString(1, category);
                         categoryStmt.setString(2, icon.toUpperCase());
-                        categoryStmt.addBatch();
+                        categoryStmt.execute();
 
                         List<String> items = categories.getStringList(category + ".items");
                         for(String material : items) {
@@ -53,17 +51,9 @@ public class UpdateCategoriesCommand implements CommandExecutor {
                             }
                             materialStmt.setString(1, material.toUpperCase());
                             materialStmt.setString(2, category);
-                            materialStmt.addBatch();
-                            materialBatchSize++;
-                            if(materialBatchSize >= 80) {
-                                materialStmt.executeBatch();
-                                materialStmt.clearBatch();
-                                materialBatchSize = 0;
-                            }
+                            materialStmt.execute();
                         }
                     }
-                    categoryStmt.executeBatch();
-                    materialStmt.executeBatch();
                     conn.close();
                     long after = System.currentTimeMillis();
                     long ms = after - before;
