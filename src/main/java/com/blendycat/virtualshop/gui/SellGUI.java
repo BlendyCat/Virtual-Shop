@@ -129,10 +129,12 @@ public class SellGUI extends InventoryGUI {
         boolean isDraggedInTopInventory = false;
         InventoryView view = e.getView();
 
+        Inventory top = view.getTopInventory();
+        int topSize = top.getSize();
+
         for(int slot : e.getRawSlots()) {
-            if(getInventory().equals(view.getInventory(slot))) {
+            if(slot < topSize) {
                 isDraggedInTopInventory = true;
-                break;
             }
         }
         if(isDraggedInTopInventory) e.setCancelled(moveItemToGUI(item));
