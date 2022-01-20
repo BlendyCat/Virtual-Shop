@@ -108,6 +108,13 @@ public class SellGUI extends InventoryGUI {
     }
 
     @Override
+    protected void onSwapWithCursor(boolean guiIsClickedInventory, InventoryClickEvent event) {
+        if(guiIsClickedInventory) {
+            swapItemToGUI(event.getCursor(), event);
+        }
+    }
+
+    @Override
     protected void onPickupItem(boolean guiIsClickedInventory, InventoryClickEvent event) {
         if(guiIsClickedInventory) moveItemFromGUI();
     }
@@ -117,6 +124,7 @@ public class SellGUI extends InventoryGUI {
         if(guiIsClickedInventory) moveItemFromGUI();
         if(!guiIsClickedInventory) e.setCancelled(moveItemToGUI(e.getCurrentItem()));
     }
+
 
     @Override
     protected void onCollectToCursor(boolean guiIsClickedInventory, InventoryClickEvent event) {
@@ -163,6 +171,27 @@ public class SellGUI extends InventoryGUI {
             }
         }
         return true;
+    }
+
+    private void swapItemToGUI(ItemStack item, InventoryClickEvent e) {
+        // some code that does stuff
+        if(item != null) {
+            Material material = item.getType();
+            if(item.isSimilar(new ItemStack(material, item.getAmount()))) {
+                Inventory inv = this.getInventory();
+                int slot = e.getSlot();
+                for(int i = 0; i < inv.getSize() - 9; i ++) {
+                    if(i == slot) continue;
+                    if(inv.getItem(i) != null) {
+                        e.setCancelled(true);
+                        return;
+                    }
+                }
+                currentMaterial = material;
+            } else {
+                e.setCancelled(true);
+            }
+        }
     }
 
     // clear the material if there is nothing in the sell window

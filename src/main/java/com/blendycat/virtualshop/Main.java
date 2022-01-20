@@ -6,7 +6,6 @@ import com.blendycat.virtualshop.gui.InventoryGUI;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;

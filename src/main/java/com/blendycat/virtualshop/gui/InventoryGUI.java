@@ -75,7 +75,7 @@ public abstract class InventoryGUI implements InventoryHolder {
                     onMoveToOtherInventory(guiIsClickedInventory, e);
                     break;
                 case SWAP_WITH_CURSOR:
-
+                    onSwapWithCursor(guiIsClickedInventory, e);
                     break;
                 case DROP_ALL_CURSOR:
                 case DROP_ALL_SLOT:
