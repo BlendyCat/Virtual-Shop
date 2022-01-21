@@ -4,6 +4,7 @@ import com.blendycat.virtualshop.Main;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.*;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -26,10 +27,18 @@ public class SellGUI extends InventoryGUI {
     private static final String LORE3 = ChatColor.translateAlternateColorCodes( '&', "&7Shift click for &b%s");
     private static final String ADJUST_PRICE = ChatColor.translateAlternateColorCodes('&', "&a+&7/&c-&b%s");
 
+    // How often the updates can occur
+    private static final int UPDATE_FREQ = 60;
+
     private double price;
     private boolean sell = false;
 
     private Material currentMaterial;
+    // The last material price updated
+    private Material lastMaterial;
+
+    private int cooldown = 0;
+    private Player seller;
 
     private Button confirmButton;
 
@@ -49,6 +58,47 @@ public class SellGUI extends InventoryGUI {
         addButton(3, 8, confirmButton);
 
         setPrice(0);
+        Runnable counter = ()-> {
+            if(cooldown > 0) {
+                cooldown--;
+            }
+            if(currentMaterial == null && lastMaterial != null) {
+                lastMaterial = null;
+                Runnable z = ()-> {
+                    setPrice(0);
+                };
+                Bukkit.getScheduler().runTask(Main.instance, z);
+            } else if(cooldown == 0 && lastMaterial != currentMaterial && seller != null) {
+                // Pull the price from the mysql
+                try {
+                    Connection conn = Main.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(Main.loadSQL("sql/select/price_for_listing.sql"));
+
+                    stmt.setString(1, currentMaterial.name());
+                    stmt.setString(2, seller.getUniqueId().toString());
+
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        double price = rs.getDouble(1);
+                        Runnable setP = () -> {
+                            setPrice(price);
+                        };
+                        Bukkit.getScheduler().runTask(Main.instance, setP);
+                    } else {
+                        Runnable setP = () -> {
+                            setPrice(0);
+                        };
+                        Bukkit.getScheduler().runTask(Main.instance, setP);
+                    }
+                    conn.close();
+                    lastMaterial = currentMaterial;
+                    cooldown = UPDATE_FREQ;
+                } catch (SQLException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.instance, counter, 1, 1);
     }
 
     private void createPriceAdjustmentButton(int row, int column, Material material, double value, double shiftValue) {
@@ -104,6 +154,7 @@ public class SellGUI extends InventoryGUI {
         if(guiIsClickedInventory) {
             ItemStack item = e.getCursor();
             e.setCancelled(moveItemToGUI(item));
+            seller = (Player) e.getWhoClicked();
         }
     }
 
@@ -111,6 +162,7 @@ public class SellGUI extends InventoryGUI {
     protected void onSwapWithCursor(boolean guiIsClickedInventory, InventoryClickEvent event) {
         if(guiIsClickedInventory) {
             swapItemToGUI(event.getCursor(), event);
+            seller = (Player) event.getWhoClicked();
         }
     }
 
@@ -123,12 +175,14 @@ public class SellGUI extends InventoryGUI {
     protected void onMoveToOtherInventory(boolean guiIsClickedInventory, InventoryClickEvent e) {
         if(guiIsClickedInventory) moveItemFromGUI();
         if(!guiIsClickedInventory) e.setCancelled(moveItemToGUI(e.getCurrentItem()));
+        seller = (Player) e.getWhoClicked();
     }
 
 
     @Override
     protected void onCollectToCursor(boolean guiIsClickedInventory, InventoryClickEvent event) {
         moveItemFromGUI();
+        seller = (Player) event.getWhoClicked();
     }
 
     @Override
@@ -146,12 +200,15 @@ public class SellGUI extends InventoryGUI {
             }
         }
         if(isDraggedInTopInventory) e.setCancelled(moveItemToGUI(item));
+        seller = (Player) e.getWhoClicked();
     }
 
     @Override
     protected void onClose(InventoryCloseEvent e) {
         if(!sell) cancel(e.getPlayer());
     }
+
+
 
     /**
      *
@@ -290,13 +347,19 @@ public class SellGUI extends InventoryGUI {
                             stmt.setInt(4, quantity);
 
                         }
-                        if(balance >= tax + additionalTax) {
+                        if(balance != tax + additionalTax) {
                             sell = true;
                             stmt.executeUpdate();
                             eco.withdrawPlayer((OfflinePlayer) player, tax + additionalTax);
-                            player.sendMessage(String.format(ChatColor.translateAlternateColorCodes('&',
-                                    "&fSelling &7%d &b%s &ffor &a%s &feach (You paid &c%s &fin seller's tax)."),
-                                    prevQuantity + quantity, currentMaterial.name(), Main.formatDollar(price), Main.formatDollar(tax + additionalTax)));
+                            if(additionalTax >= 0) {
+                                player.sendMessage(String.format(ChatColor.translateAlternateColorCodes('&',
+                                        "&fSelling &7%d &b%s &ffor &a%s &feach (You paid &c%s &fin seller's tax)."),
+                                        prevQuantity + quantity, currentMaterial.name(), Main.formatDollar(price), Main.formatDollar(tax + additionalTax)));
+                            } else {
+                                player.sendMessage(String.format(ChatColor.translateAlternateColorCodes('&',
+                                        "&fSelling &7%d &b%s &ffor &a%s &feach (You were refunded &a%s &fin seller's tax)."),
+                                        prevQuantity + quantity, currentMaterial.name(), Main.formatDollar(price), Main.formatDollar(tax + additionalTax)));
+                            }
                             player.closeInventory();
                         } else {
                             sell = false;
